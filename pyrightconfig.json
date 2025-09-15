@@ -1,0 +1,29 @@
+{
+    "include": [
+        "backend/**/*.py",
+        "scripts/**/*.py"
+    ],
+    "exclude": [
+        "**/__pycache__",
+        "**/node_modules",
+        "venv"
+    ],
+    "pythonVersion": "3.12",
+    "pythonPlatform": "Darwin",
+    "executionEnvironments": [
+        {
+            "root": "backend",
+            "pythonVersion": "3.12",
+            "pythonPlatform": "Darwin",
+            "extraPaths": [
+                "backend",
+                "scripts"
+            ]
+        }
+    ],
+    "typeCheckingMode": "basic",
+    "useLibraryCodeForTypes": true,
+    "autoImportCompletions": true
+}
+
+

@@ -48,6 +48,18 @@ export interface ScryfallCard {
 }
 
 // API Response types
+export interface ParsedCard {
+  name: string;
+  set: string;
+  collector_number: string;
+  quantity: number;
+}
+
+export interface DecklistCard {
+  card: ScryfallCard;
+  quantity: number;
+}
+
 export interface ParsedDeck {
   commander_ids: string[];
   card_ids: string[];
@@ -57,6 +69,7 @@ export interface ParsedDeck {
     text: string;
     suggestions?: string[];
   }>;
+  decklist: DecklistCard[];
 }
 
 export interface RecommendationExplanation {

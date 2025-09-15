@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { DeckState } from '@/lib/types';
 import DeckAnalysis from './DeckAnalysis';
 import RecommendationsTab from './RecommendationsTab';
+import DeckListTab from './DeckListTab';
 
 interface DeckTabsProps {
   deckState: DeckState;
@@ -13,7 +14,7 @@ interface DeckTabsProps {
 }
 
 export default function DeckTabs({ deckState, budgetCents, onBudgetChange, onClearDeck }: DeckTabsProps) {
-  const [activeTab, setActiveTab] = useState<'analysis' | 'recommendations'>('analysis');
+  const [activeTab, setActiveTab] = useState<'analysis' | 'recommendations' | 'decklist'>('analysis');
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
@@ -40,6 +41,16 @@ export default function DeckTabs({ deckState, budgetCents, onBudgetChange, onCle
               }`}
             >
               Recommendations
+            </button>
+            <button
+              onClick={() => setActiveTab('decklist')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'decklist'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              Deck List
             </button>
           </nav>
 
@@ -81,6 +92,9 @@ export default function DeckTabs({ deckState, budgetCents, onBudgetChange, onCle
         )}
         {activeTab === 'recommendations' && (
           <RecommendationsTab deckState={deckState} />
+        )}
+        {activeTab === 'decklist' && (
+          <DeckListTab deckState={deckState} />
         )}
       </div>
     </div>

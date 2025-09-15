@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
+from app.schemas.card import ScryfallCard
 
 class ParseDeckRequest(BaseModel):
     decklist: str
@@ -9,11 +10,22 @@ class DeckIssue(BaseModel):
     text: str
     suggestions: Optional[List[str]] = None
 
+class ParsedCard(BaseModel):
+    name: str
+    set: str
+    collector_number: str
+    quantity: int
+
+class DecklistCard(BaseModel):
+    card: ScryfallCard
+    quantity: int
+
 class ParsedDeck(BaseModel):
     commander_ids: List[str]
     card_ids: List[str]
     color_identity: List[str]
     issues: List[DeckIssue] = []
+    decklist: List[DecklistCard] = []
 
 class RecommendRequest(BaseModel):
     commander_ids: List[str]
