@@ -1,6 +1,6 @@
 import re
 from sqlalchemy.orm import Session
-from typing import List, Dict, Tuple, Set
+from typing import List, Dict, Tuple, Set, Optional
 from app.models.card import ScryfallCard as ScryfallCardModel
 from app.schemas.deck import ParsedDeck, DeckIssue, ParsedCard, DecklistCard
 from app.schemas.card import ScryfallCard
@@ -11,7 +11,7 @@ class DeckService:
         self.db = db
         self.card_service = CardService(db)
 
-    async def parse_decklist(self, decklist: str) -> ParsedDeck:
+    async def parse_decklist(self, decklist: str, commander1: Optional[str] = None, commander2: Optional[str] = None) -> ParsedDeck:
         """Parse a decklist string into structured deck data"""
 
         lines = decklist.strip().split('\n')
@@ -48,38 +48,47 @@ class DeckService:
         # Create a mapping of found cards by name for easy lookup
         found_cards_map = {card.name: card for card in found_cards}
 
-        # Create decklist cards with ScryfallCard objects
+        # Create decklist cards with ScryfallCard objects, combining duplicates by name
         decklist_cards = []
+        card_quantities = {}  # Track quantities by card name
+        
+        # First pass: collect quantities for each card name
         for parsed_card in parsed_cards:
             if parsed_card.name in found_cards_map:
-                card = found_cards_map[parsed_card.name]
-                # Convert ScryfallCard model to ScryfallCard schema
-                card_schema = ScryfallCard(
-                    id=str(getattr(card, 'id', '')),
-                    oracle_id=str(getattr(card, 'oracle_id', '')) if getattr(card, 'oracle_id', None) else None,
-                    name=getattr(card, 'name', ''),
-                    released_at=getattr(card, 'released_at', None),
-                    set=getattr(card, 'set', None),
-                    set_name=getattr(card, 'set_name', None),
-                    collector_number=getattr(card, 'collector_number', None),
-                    lang=getattr(card, 'lang', None),
-                    cmc=getattr(card, 'cmc', None),
-                    type_line=getattr(card, 'type_line', None),
-                    oracle_text=getattr(card, 'oracle_text', None),
-                    colors=getattr(card, 'colors', None),
-                    color_identity=getattr(card, 'color_identity', []),
-                    keywords=getattr(card, 'keywords', None),
-                    legalities=getattr(card, 'legalities', {}),
-                    image_uris=getattr(card, 'image_uris', None),
-                    card_faces=getattr(card, 'card_faces', None),
-                    prices=getattr(card, 'prices', None),
-                    edhrec_rank=getattr(card, 'edhrec_rank', None)
-                )
-                decklist_card = DecklistCard(
-                    card=card_schema,
-                    quantity=parsed_card.quantity
-                )
-                decklist_cards.append(decklist_card)
+                if parsed_card.name not in card_quantities:
+                    card_quantities[parsed_card.name] = 0
+                card_quantities[parsed_card.name] += parsed_card.quantity
+        
+        # Second pass: create decklist cards with combined quantities
+        for card_name, total_quantity in card_quantities.items():
+            card = found_cards_map[card_name]
+            # Convert ScryfallCard model to ScryfallCard schema
+            card_schema = ScryfallCard(
+                id=str(getattr(card, 'id', '')),
+                oracle_id=str(getattr(card, 'oracle_id', '')) if getattr(card, 'oracle_id', None) else None,
+                name=getattr(card, 'name', ''),
+                released_at=getattr(card, 'released_at', None),
+                set=getattr(card, 'set', None),
+                set_name=getattr(card, 'set_name', None),
+                collector_number=getattr(card, 'collector_number', None),
+                lang=getattr(card, 'lang', None),
+                cmc=getattr(card, 'cmc', None),
+                type_line=getattr(card, 'type_line', None),
+                oracle_text=getattr(card, 'oracle_text', None),
+                colors=getattr(card, 'colors', None),
+                color_identity=getattr(card, 'color_identity', []),
+                keywords=getattr(card, 'keywords', None),
+                legalities=getattr(card, 'legalities', {}),
+                image_uris=getattr(card, 'image_uris', None),
+                card_faces=getattr(card, 'card_faces', None),
+                prices=getattr(card, 'prices', None),
+                edhrec_rank=getattr(card, 'edhrec_rank', None)
+            )
+            decklist_card = DecklistCard(
+                card=card_schema,
+                quantity=total_quantity
+            )
+            decklist_cards.append(decklist_card)
 
         # Add issues for unknown cards
         for unknown_card in unknown_cards:
@@ -90,18 +99,77 @@ class DeckService:
                 suggestions=suggestions
             ))
 
-        # Separate commanders from other cards
-        commanders, regular_cards = self._separate_commanders(found_cards)
+        # Handle commanders from input fields
+        commanders = []
+        commander_names = []
+        
+        # Find commanders from input fields
+        if commander1:
+            commander_card = await self._find_card_by_name(commander1)
+            if commander_card:
+                commanders.append(commander_card)
+                commander_names.append(commander1)
+            else:
+                issues.append(DeckIssue(
+                    type="unknown_commander",
+                    text=f"Commander not found: '{commander1}'"
+                ))
+        
+        if commander2 and commander2.strip():
+            commander_card = await self._find_card_by_name(commander2)
+            if commander_card:
+                commanders.append(commander_card)
+                commander_names.append(commander2)
+            else:
+                issues.append(DeckIssue(
+                    type="unknown_commander",
+                    text=f"Commander not found: '{commander2}'"
+                ))
+
+        # Add commanders to decklist_cards so they appear in the decklist tab
+        for commander in commanders:
+            # Convert ScryfallCard model to ScryfallCard schema
+            card_schema = ScryfallCard(
+                id=str(getattr(commander, 'id', '')),
+                oracle_id=str(getattr(commander, 'oracle_id', '')) if getattr(commander, 'oracle_id', None) else None,
+                name=getattr(commander, 'name', ''),
+                released_at=getattr(commander, 'released_at', None),
+                set=getattr(commander, 'set', None),
+                set_name=getattr(commander, 'set_name', None),
+                collector_number=getattr(commander, 'collector_number', None),
+                lang=getattr(commander, 'lang', None),
+                cmc=getattr(commander, 'cmc', None),
+                type_line=getattr(commander, 'type_line', None),
+                oracle_text=getattr(commander, 'oracle_text', None),
+                colors=getattr(commander, 'colors', None),
+                color_identity=getattr(commander, 'color_identity', []),
+                keywords=getattr(commander, 'keywords', None),
+                legalities=getattr(commander, 'legalities', {}),
+                image_uris=getattr(commander, 'image_uris', None),
+                card_faces=getattr(commander, 'card_faces', None),
+                prices=getattr(commander, 'prices', None),
+                edhrec_rank=getattr(commander, 'edhrec_rank', None)
+            )
+            commander_decklist_card = DecklistCard(
+                card=card_schema,
+                quantity=1  # Commanders are always 1 copy
+            )
+            decklist_cards.append(commander_decklist_card)
+
+        # All other cards are regular cards (exclude commanders)
+        commander_names_set = set(commander_names)
+        regular_cards = [card for card in found_cards if card.name not in commander_names_set]
 
         # Determine color identity
         color_identity = self._calculate_color_identity(commanders + regular_cards)
 
         # Validate deck composition
-        composition_issues = self._validate_deck_composition(commanders, regular_cards)
+        composition_issues = self._validate_deck_composition(commanders, regular_cards, decklist_cards)
         issues.extend(composition_issues)
 
         return ParsedDeck(
             commander_ids=[str(c.id) for c in commanders],
+            commander_names=commander_names,
             card_ids=[str(c.id) for c in regular_cards],
             color_identity=sorted(color_identity),
             issues=issues,
@@ -113,10 +181,12 @@ class DeckService:
         Returns: (name, set, collector_number, quantity)
         """
         patterns = [
-            # Format: "1 Cryptic Command (PLST) IMA-48"
+            # Format: "1 Card Name (SET) NUMBER" - most common format
+            r'^(\d+)x?\s+(.+?)\s+\(([^)]+)\)\s+(\d+).*$',
+            # Format: "1 Card Name (SET) NUMBER *F*" (with foil)
+            r'^(\d+)x?\s+(.+?)\s+\(([^)]+)\)\s+(\d+)\s*.*$',
+            # Format: "1 Cryptic Command (PLST) IMA-48" (with alphanumeric collector number)
             r'^(\d+)x?\s+(.+?)\s+\(([^)]+)\)\s+([A-Z0-9\-]+).*$',
-            # Format: "1 Cryptic Command (PLST) IMA-48 *F*" (with foil)
-            r'^(\d+)x?\s+(.+?)\s+\(([^)]+)\)\s+([A-Z0-9\-]+)\s*.*$',
             # Fallback: "1 Sol Ring" (no set info)
             r'^(\d+)x?\s+(.+)$',
             r'^(\d+)\s+(.+)$',  # "1 Sol Ring"
@@ -181,6 +251,12 @@ class DeckService:
         
         return query.first()
 
+    async def _find_card_by_name(self, name: str) -> ScryfallCardModel:
+        """Find a card by name only (case insensitive)"""
+        query = self.db.query(ScryfallCardModel)
+        query = query.filter(ScryfallCardModel.name.ilike(name))
+        return query.first()
+
     async def _resolve_card_names(self, card_names: List[str]) -> Tuple[List[ScryfallCardModel], List[str]]:
         """Resolve card names to database cards"""
         found_cards = []
@@ -229,15 +305,15 @@ class DeckService:
 
         return color_identity
 
-    def _validate_deck_composition(self, commanders: List[ScryfallCardModel], regular_cards: List[ScryfallCardModel]) -> List[DeckIssue]:
+    def _validate_deck_composition(self, commanders: List[ScryfallCardModel], regular_cards: List[ScryfallCardModel], decklist_cards: List[DecklistCard]) -> List[DeckIssue]:
         """Validate deck composition and identify issues"""
         issues = []
 
-        # Check commander count
+        # Check commander count - only validate commanders from input fields
         if len(commanders) == 0:
             issues.append(DeckIssue(
                 type="missing_commander",
-                text="No commander found in decklist"
+                text="No commander specified"
             ))
         elif len(commanders) > 2:
             issues.append(DeckIssue(
@@ -245,17 +321,19 @@ class DeckService:
                 text=f"Found {len(commanders)} commanders, maximum is 2"
             ))
 
-        # Check deck size
-        total_cards = len(commanders) + len(regular_cards)
-        if total_cards < 100:
+        # Check deck size - count actual total cards including duplicates
+        total_cards = sum(card.quantity for card in decklist_cards)
+        expected_cards = 99 if len(commanders) == 1 else 98 if len(commanders) == 2 else 100
+        
+        if total_cards < expected_cards:
             issues.append(DeckIssue(
                 type="too_few_cards",
-                text=f"Deck has {total_cards} cards, should have 100"
+                text=f"Deck has {total_cards} cards, should have {expected_cards}"
             ))
-        elif total_cards > 100:
+        elif total_cards > expected_cards:
             issues.append(DeckIssue(
                 type="too_many_cards",
-                text=f"Deck has {total_cards} cards, should have 100"
+                text=f"Deck has {total_cards} cards, should have {expected_cards}"
             ))
 
         return issues

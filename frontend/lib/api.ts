@@ -42,10 +42,14 @@ export const api = {
   },
 
   // Parse decklist
-  async parseDeck(decklist: string): Promise<ParsedDeck> {
+  async parseDeck(decklist: string, commander1?: string, commander2?: string): Promise<ParsedDeck> {
     return apiRequest('/deck/parse', {
       method: 'POST',
-      body: JSON.stringify({ decklist }),
+      body: JSON.stringify({ 
+        decklist, 
+        commander1: commander1 || null, 
+        commander2: commander2 || null 
+      }),
     });
   },
 
@@ -66,7 +70,7 @@ export const api = {
       include_features: filters.include_features || false,
     };
 
-    return apiRequest('/recommend', {
+    return apiRequest('/deck/recommend', {
       method: 'POST',
       body: JSON.stringify(payload),
     });

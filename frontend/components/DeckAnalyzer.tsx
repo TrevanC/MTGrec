@@ -19,13 +19,19 @@ export default function DeckAnalyzer() {
 
   const [budgetCents, setBudgetCents] = useState(5000); // $50 default
 
-  const handleDecklistSubmit = async (decklist: string) => {
-    setDecklist(decklist);
+  const handleDecklistSubmit = async (commander1: string, commander2: string, decklist: string) => {
+    // Store the full decklist for display purposes
+    let fullDecklist = commander1;
+    if (commander2.trim()) {
+      fullDecklist += `\n${commander2}`;
+    }
+    fullDecklist += `\n${decklist}`;
+    setDecklist(fullDecklist);
     setLoading(true);
 
     try {
-      // Parse the decklist
-      const parsed = await api.parseDeck(decklist);
+      // Parse the decklist with separate commander parameters
+      const parsed = await api.parseDeck(decklist, commander1, commander2);
       setParsedDeck(parsed);
 
       // If parsing was successful and we have cards, get recommendations
@@ -84,7 +90,9 @@ export default function DeckAnalyzer() {
           onSubmit={handleDecklistSubmit}
           isLoading={deckState.isLoading}
           error={deckState.error}
-          initialDecklist={deckState.decklist}
+          initialCommander1=""
+          initialCommander2=""
+          initialDecklist=""
         />
       ) : (
         <DeckTabs

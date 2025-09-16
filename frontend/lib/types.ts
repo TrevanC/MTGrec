@@ -62,6 +62,7 @@ export interface DecklistCard {
 
 export interface ParsedDeck {
   commander_ids: string[];
+  commander_names: string[];
   card_ids: string[];
   color_identity: string[];
   issues: Array<{

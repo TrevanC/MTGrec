@@ -21,22 +21,13 @@ export default function DeckAnalysis({ deckState }: DeckAnalysisProps) {
   return (
     <div className="space-y-6">
       {/* Deck Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            Commander{parsed.commander_ids.length > 1 ? 's' : ''}
-          </h3>
-          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-            {parsed.commander_ids.length}
-          </p>
-        </div>
-
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
             Total Cards
           </h3>
           <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-            {parsed.commander_ids.length + parsed.card_ids.length}
+            {parsed.decklist.reduce((sum, card) => sum + card.quantity, 0)}
           </p>
         </div>
 

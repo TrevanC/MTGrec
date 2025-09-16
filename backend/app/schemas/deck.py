@@ -4,6 +4,8 @@ from app.schemas.card import ScryfallCard
 
 class ParseDeckRequest(BaseModel):
     decklist: str
+    commander1: Optional[str] = None
+    commander2: Optional[str] = None
 
 class DeckIssue(BaseModel):
     type: str
@@ -22,6 +24,7 @@ class DecklistCard(BaseModel):
 
 class ParsedDeck(BaseModel):
     commander_ids: List[str]
+    commander_names: List[str] = []
     card_ids: List[str]
     color_identity: List[str]
     issues: List[DeckIssue] = []
