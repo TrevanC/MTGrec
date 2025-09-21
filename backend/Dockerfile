@@ -2,6 +2,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# copy data/processed to /app/data/processed
+COPY data/processed /app/data/processed
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
@@ -9,11 +12,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first to leverage Docker cache
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY . .
+COPY backend/ .
 
 # Expose port
 EXPOSE 8000

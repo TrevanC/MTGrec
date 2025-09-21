@@ -39,6 +39,7 @@ class RecommendRequest(BaseModel):
     explain_top_k: Optional[int] = 10
     include_evidence: Optional[bool] = False
     include_features: Optional[bool] = False
+    allow_unresolved: Optional[bool] = True
 
 class ExplanationReason(BaseModel):
     type: str
@@ -63,7 +64,7 @@ class RecommendationExplanation(BaseModel):
 
 class Recommendation(BaseModel):
     card: Dict[str, Any]  # ScryfallCard as dict
-    score: int
+    score: float
     explanation: RecommendationExplanation
 
 class RecommendContext(BaseModel):

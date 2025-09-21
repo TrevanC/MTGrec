@@ -79,6 +79,13 @@ class CardService:
             return card.data
         return None
 
+    async def get_card_by_oracle_id(self, oracle_id: str) -> Optional[dict]:
+        """Get a card by its Oracle ID"""
+        card = self.db.query(ScryfallCard).filter(ScryfallCard.oracle_id == oracle_id).first()
+        if card:
+            return card.data
+        return None
+
     async def find_card_by_name(self, name: str) -> Optional[ScryfallCard]:
         """Find a card by its name (case insensitive)"""
         return self.db.query(ScryfallCard).filter(

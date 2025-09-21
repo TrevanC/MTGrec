@@ -18,8 +18,8 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./backend/Dockerfile
     ports:
       - "8000:8000"
     environment:
@@ -27,6 +27,7 @@ services:
       DEBUG: "true"
     volumes:
       - ./backend:/app
+      - ./data/processed:/app/data/processed
     depends_on:
       db:
         condition: service_healthy

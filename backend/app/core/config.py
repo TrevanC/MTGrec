@@ -1,6 +1,7 @@
 from typing import List, Optional
 from pydantic_settings import BaseSettings
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -24,6 +25,16 @@ class Settings(BaseSettings):
 
     # Development
     DEBUG: bool = os.getenv("DEBUG", "true").lower() == "true"
+    
+    # Inference Recommender Configuration
+    DATASET_PATH: str = os.getenv(
+        "DATASET_PATH",
+        str(Path(__file__).parent.parent.parent / "data" / "processed" / "compact_dataset.json.gz")
+    )
+    SIMILARITY_MODEL_PATH: str = os.getenv(
+        "SIMILARITY_MODEL_PATH", 
+        str(Path(__file__).parent.parent.parent / "data" / "processed" / "similarity_model.pkl")
+    )
 
     class Config:
         case_sensitive = True

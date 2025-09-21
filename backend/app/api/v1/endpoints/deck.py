@@ -10,16 +10,27 @@ from app.schemas.deck import (
 )
 from app.services.deck_service import DeckService
 from app.services.recommendation_service import RecommendationService
+from app.mrec.inference import InferenceRecommender
+from app.core.inference import get_inference_recommender
+from app.core.config import settings
 
 router = APIRouter()
 
+def get_recommendation_service(db: Session = Depends(get_db)) -> RecommendationService:
+    """Get RecommendationService with InferenceRecommender dependency"""
+    inference_recommender = get_inference_recommender()
+    return RecommendationService(db, inference_recommender)
+
 def dump_request_to_json(request_data: dict, endpoint: str):
-    """Dump request data to a JSON file with timestamp"""
+    """Dump request data to a JSON file with timestamp (only in debug mode)"""
+    if not settings.DEBUG:
+        return None
+        
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"request_{endpoint}_{timestamp}.json"
     
     # Create requests directory if it doesn't exist
-    requests_dir = "requests"
+    requests_dir = "debug"
     if not os.path.exists(requests_dir):
         os.makedirs(requests_dir)
     
@@ -32,12 +43,15 @@ def dump_request_to_json(request_data: dict, endpoint: str):
     return filepath
 
 def dump_response_to_json(response_data: dict, endpoint: str):
-    """Dump response data to a JSON file with timestamp"""
+    """Dump response data to a JSON file with timestamp (only in debug mode)"""
+    if not settings.DEBUG:
+        return None
+        
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"response_{endpoint}_{timestamp}.json"
     
     # Create responses directory if it doesn't exist
-    responses_dir = "responses"
+    responses_dir = "debug"
     if not os.path.exists(responses_dir):
         os.makedirs(responses_dir)
     
@@ -86,7 +100,7 @@ async def parse_deck(
 @router.post("/recommend", response_model=RecommendationsResponse)
 async def get_recommendations(
     request: RecommendRequest,
-    db: Session = Depends(get_db)
+    recommendation_service: RecommendationService = Depends(get_recommendation_service)
 ):
     """Get upgrade recommendations for a deck"""
     try:
@@ -98,7 +112,6 @@ async def get_recommendations(
         }
         dump_request_to_json(request_data, "recommend")
         
-        recommendation_service = RecommendationService(db)
         result = await recommendation_service.get_recommendations(
             commander_ids=request.commander_ids,
             deck_card_ids=request.deck_card_ids,
@@ -107,7 +120,8 @@ async def get_recommendations(
             explain=request.explain or "full",
             explain_top_k=request.explain_top_k or 10,
             include_evidence=request.include_evidence or False,
-            include_features=request.include_features or False
+            include_features=request.include_features or False,
+            allow_unresolved=request.allow_unresolved if request.allow_unresolved is not None else True
         )
         
         # Dump response to JSON file
