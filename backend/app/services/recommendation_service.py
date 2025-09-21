@@ -132,12 +132,13 @@ class RecommendationService:
                         },
                         score=score.total,
                         explanation=RecommendationExplanation(
-                            summary=f"Based on other public decks",
+                            summary=f"MagicRec (20k public decks)",
                             reasons=[
                                 # TODO: add more information in CandidateScore and RecommendationReason
                                 ExplanationReason(
                                     type="inference_score",
                                     detail=f"Score: {score.total:.3f}, reason: {reason.summary}",
+                                    # use the total score as weight for now
                                     weight=score.total
                                 )
                             ]

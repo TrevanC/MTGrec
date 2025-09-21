@@ -49,7 +49,7 @@ export default function RecommendationCard({ recommendation }: RecommendationCar
           </div>
           <div className="ml-2 flex-shrink-0">
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-              {score}
+              {Number(score).toFixed(3)}
             </span>
           </div>
         </div>
